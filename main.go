@@ -7,15 +7,32 @@ import "strconv"
 import "net/http"
 import "encoding/json"
 
-type Result struct {
-	Status  int32  `json:"status"`
-	Message string `json:"message"`
+type MusicFileStruct struct {
+	FileName     string `json:"fileName"`
+	FileSize     string `json:"fileSize"`
+	ModifiedTime string `json:"modifiedTime"`
+}
+
+type DataStruct struct {
+	MusicList     []MusicFileStruct `json:"musicList"`
+	SubFolderList []string          `json:"subFolderList"`
+}
+
+type ResultStruct struct {
+	Type string     `json:"type"`
+	Data DataStruct `json:"data"`
+}
+
+type ResponseStruct struct {
+	Status  int32        `json:"status"`
+	Message string       `json:"message"`
+	Result  ResultStruct `json:"result"`
 }
 
 func Fire(res http.ResponseWriter, status int32, message string) {
 	res.WriteHeader(int(status))
 	// res.Header().Set("Access-Control-Allow-Origin", "*")
-	resStruct := &Result{
+	resStruct := &ResponseStruct{
 		Status:  status,
 		Message: message} // 智障吧这个，`}` 必须写这儿？
 	resBtye, _ := json.Marshal(resStruct)
