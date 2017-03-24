@@ -24,23 +24,25 @@ type ResultStruct struct {
 }
 
 type ResponseStruct struct {
-	Status  int32        `json:"status"`
-	Message string       `json:"message"`
-	Result  ResultStruct `json:"result"`
+	Status  int32         `json:"status"`
+	Message string        `json:"message"`
+	Result  *ResultStruct `json:"result,omitempty"`
 }
 
-func Fire(res http.ResponseWriter, status int32, message string) {
+func Fire(res http.ResponseWriter, status int32, message string, result *ResultStruct) {
 	res.WriteHeader(int(status))
 	// res.Header().Set("Access-Control-Allow-Origin", "*")
 	resStruct := &ResponseStruct{
 		Status:  status,
-		Message: message} // 智障吧这个，`}` 必须写这儿？
+		Message: message,
+		Result:  result,
+	}
 	resBtye, _ := json.Marshal(resStruct)
 	fmt.Fprintf(res, string(resBtye))
 }
 
 func GetPlaylist(response http.ResponseWriter, request *http.Request) {
-	Fire(response, 501, "Not Implemented!")
+	Fire(response, 501, "Not Implemented!", nil)
 }
 
 func Controller(response http.ResponseWriter, request *http.Request) {
@@ -51,10 +53,10 @@ func Controller(response http.ResponseWriter, request *http.Request) {
 		case "getplaylist":
 			GetPlaylist(response, request)
 		default:
-			Fire(response, 400, "Illegal request!")
+			Fire(response, 400, "Illegal request!", nil)
 		}
 	} else {
-		Fire(response, 400, "Illegal request!")
+		Fire(response, 400, "Illegal request!", nil)
 	}
 }
 
