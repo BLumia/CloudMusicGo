@@ -5,11 +5,13 @@ import "log"
 import "flag"
 import "strconv"
 import "net/http"
+import "io/ioutil"
+import "path/filepath"
 import "encoding/json"
 
 type MusicFileStruct struct {
 	FileName     string `json:"fileName"`
-	FileSize     string `json:"fileSize"`
+	FileSize     int64  `json:"fileSize"`
 	ModifiedTime string `json:"modifiedTime"`
 }
 
@@ -30,8 +32,10 @@ type ResponseStruct struct {
 }
 
 func Fire(res http.ResponseWriter, status int32, message string, result *ResultStruct) {
-	res.WriteHeader(int(status))
 	// res.Header().Set("Access-Control-Allow-Origin", "*")
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(int(status))
+
 	resStruct := &ResponseStruct{
 		Status:  status,
 		Message: message,
@@ -42,7 +46,34 @@ func Fire(res http.ResponseWriter, status int32, message string, result *ResultS
 }
 
 func GetPlaylist(response http.ResponseWriter, request *http.Request) {
-	Fire(response, 501, "Not Implemented!", nil)
+	var folderSlice []string
+	var musicSlice []MusicFileStruct
+
+	files, _ := ioutil.ReadDir("./")
+	for _, f := range files {
+		if f.IsDir() {
+			folderSlice = append(folderSlice, f.Name())
+		} else {
+			var extension = filepath.Ext(f.Name())
+			if extension == ".mp3" || extension == ".wav" {
+				musicSlice = append(musicSlice, MusicFileStruct{
+					FileName:     f.Name(),
+					FileSize:     f.Size(),
+					ModifiedTime: "3",
+				})
+			}
+		}
+	}
+
+	dataStruct := &DataStruct{
+		MusicList:     musicSlice,
+		SubFolderList: folderSlice,
+	}
+	resStruct := &ResultStruct{
+		Type: "fileList",
+		Data: *dataStruct,
+	}
+	Fire(response, 200, "OK", resStruct)
 }
 
 func Controller(response http.ResponseWriter, request *http.Request) {
@@ -64,12 +95,12 @@ func main() {
 	var PortNumber int
 	const (
 		defaultPortNumber = 4000
-		usage             = "The port number that the `Private Cloud Music - Go` should listen."
+		portUsage         = "The port number that the `Private Cloud Music - Go` should listen."
 	)
 	//var SongRoot string
 
-	flag.IntVar(&PortNumber, "port", defaultPortNumber, usage)
-	flag.IntVar(&PortNumber, "p", defaultPortNumber, usage+" (shorthand)")
+	flag.IntVar(&PortNumber, "port", defaultPortNumber, portUsage)
+	flag.IntVar(&PortNumber, "p", defaultPortNumber, portUsage+" (shorthand)")
 
 	flag.Parse()
 	fmt.Println("Now listening port: " + strconv.Itoa(PortNumber))
