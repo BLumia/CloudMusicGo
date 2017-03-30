@@ -9,6 +9,9 @@ import "io/ioutil"
 import "path/filepath"
 import "encoding/json"
 
+var isFileServerEnabled bool
+var SongRoot string
+
 type MusicFileStruct struct {
 	FileName     string `json:"fileName"`
 	FileSize     int64  `json:"fileSize"`
@@ -76,6 +79,11 @@ func GetPlaylist(response http.ResponseWriter, request *http.Request) {
 	Fire(response, 200, "OK", resStruct)
 }
 
+func FileServer(response http.ResponseWriter, request *http.Request) {
+	path := request.URL.Path
+	fmt.Println(path)
+}
+
 func Controller(response http.ResponseWriter, request *http.Request) {
 	log.Println(request.Method)
 	if request.Method == "POST" {
@@ -87,24 +95,37 @@ func Controller(response http.ResponseWriter, request *http.Request) {
 			Fire(response, 400, "Illegal request!", nil)
 		}
 	} else {
-		Fire(response, 400, "Illegal request!", nil)
+		if isFileServerEnabled {
+			GetPlaylist(response, request)
+		} else {
+			Fire(response, 400, "Illegal request!", nil)
+		}
 	}
 }
 
 func main() {
 	var PortNumber int
 	const (
-		defaultPortNumber = 4000
-		portUsage         = "The port number that the `Private Cloud Music - Go` should listen."
+		defaultPortNumber      = 4000
+		portUsage              = "The port number that the `Private Cloud Music - Go` should listen."
+		defaultFileServerState = false
+		fileServerUsage        = "Enable a built-in file server for the audio files."
+		defaultFileServerRoot  = ""
+		fileServerRootUsage    = "Built-in file server root path."
 	)
-	//var SongRoot string
 
 	flag.IntVar(&PortNumber, "port", defaultPortNumber, portUsage)
 	flag.IntVar(&PortNumber, "p", defaultPortNumber, portUsage+" (shorthand)")
+	flag.BoolVar(&isFileServerEnabled, "fileserver", defaultFileServerState, fileServerUsage)
+	flag.BoolVar(&isFileServerEnabled, "f", defaultFileServerState, fileServerUsage+" (shorthand)")
+	flag.StringVar(&SongRoot, "root", defaultFileServerRoot, fileServerRootUsage)
+	flag.StringVar(&SongRoot, "r", defaultFileServerRoot, fileServerRootUsage+" (shorthand)")
 
 	flag.Parse()
 	fmt.Println("Now listening port: " + strconv.Itoa(PortNumber))
-
+	if isFileServerEnabled {
+		fmt.Println("Built-in file server enabled")
+	}
 	http.HandleFunc("/", Controller)
 	err := http.ListenAndServe(":"+strconv.Itoa(PortNumber), nil)
 	if err != nil {
