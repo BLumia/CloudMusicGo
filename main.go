@@ -1,8 +1,10 @@
 package main
 
+import "os"
 import "fmt"
 import "log"
 import "flag"
+import "strings"
 import "strconv"
 import "net/http"
 import "io/ioutil"
@@ -81,7 +83,33 @@ func GetPlaylist(response http.ResponseWriter, request *http.Request) {
 
 func FileServer(response http.ResponseWriter, request *http.Request) {
 	path := request.URL.Path
-	fmt.Println(path)
+
+	if path == "/" {
+		path = "/index.html"
+	}
+
+	requestType := path[strings.LastIndex(path, "."):]
+	// Todo: media content-type
+	switch requestType {
+	case ".css":
+		response.Header().Set("content-type", "text/css")
+	case ".js":
+		response.Header().Set("content-type", "text/javascript")
+	case ".htm":
+		fallthrough
+	case ".html":
+		response.Header().Set("content-type", "text/html")
+	default:
+	}
+
+	fin, err := os.Open(SongRoot + path)
+	if err != nil {
+		log.Println("Request file [" + path + "] not exist.")
+		http.NotFound(response, request)
+	} else {
+		fd, _ := ioutil.ReadAll(fin)
+		response.Write(fd)
+	}
 }
 
 func Controller(response http.ResponseWriter, request *http.Request) {
@@ -96,7 +124,7 @@ func Controller(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		if isFileServerEnabled {
-			GetPlaylist(response, request)
+			FileServer(response, request)
 		} else {
 			Fire(response, 400, "Illegal request!", nil)
 		}
@@ -110,7 +138,7 @@ func main() {
 		portUsage              = "The port number that the `Private Cloud Music - Go` should listen."
 		defaultFileServerState = false
 		fileServerUsage        = "Enable a built-in file server for the audio files."
-		defaultFileServerRoot  = ""
+		defaultFileServerRoot  = "."
 		fileServerRootUsage    = "Built-in file server root path."
 	)
 
@@ -124,7 +152,7 @@ func main() {
 	flag.Parse()
 	fmt.Println("Now listening port: " + strconv.Itoa(PortNumber))
 	if isFileServerEnabled {
-		fmt.Println("Built-in file server enabled")
+		fmt.Println("Built-in file server enabled, root: [" + SongRoot + "] .")
 	}
 	http.HandleFunc("/", Controller)
 	err := http.ListenAndServe(":"+strconv.Itoa(PortNumber), nil)
