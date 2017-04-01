@@ -54,7 +54,11 @@ func GetPlaylist(response http.ResponseWriter, request *http.Request) {
 	var folderSlice []string
 	var musicSlice []MusicFileStruct
 
-	files, _ := ioutil.ReadDir("./")
+	SongFolder := request.PostFormValue("folder")
+
+	log.Println(request.Method + " GetPlaylist, Folder:" + SongFolder)
+
+	files, _ := ioutil.ReadDir(SongRoot + "/" + SongFolder)
 	for _, f := range files {
 		if f.IsDir() {
 			folderSlice = append(folderSlice, f.Name())
@@ -83,6 +87,8 @@ func GetPlaylist(response http.ResponseWriter, request *http.Request) {
 
 func FileServer(response http.ResponseWriter, request *http.Request) {
 	path := request.URL.Path
+
+	log.Println(request.Method + " FileSrv, Req Path:" + path)
 
 	if path == "/" {
 		path = "/index.html"
@@ -113,19 +119,20 @@ func FileServer(response http.ResponseWriter, request *http.Request) {
 }
 
 func Controller(response http.ResponseWriter, request *http.Request) {
-	log.Println(request.Method)
 	if request.Method == "POST" {
-		request.ParseForm()
-		switch do := request.Form["do"][0]; do {
+		//request.ParseForm()
+		switch do := request.PostFormValue("do"); do {
 		case "getplaylist":
 			GetPlaylist(response, request)
 		default:
+			log.Println(request.Method + " Missing or wrong `do` param.")
 			Fire(response, 400, "Illegal request!", nil)
 		}
 	} else {
 		if isFileServerEnabled {
 			FileServer(response, request)
 		} else {
+			log.Println(request.Method + " FileServer not enabled, request illegal.")
 			Fire(response, 400, "Illegal request!", nil)
 		}
 	}
@@ -137,17 +144,17 @@ func main() {
 		defaultPortNumber      = 4000
 		portUsage              = "The port number that the `Private Cloud Music - Go` should listen."
 		defaultFileServerState = false
-		fileServerUsage        = "Enable a built-in file server for the audio files."
-		defaultFileServerRoot  = "."
-		fileServerRootUsage    = "Built-in file server root path."
+		fileServerUsage        = "Enable a built-in file server for the audio files at root of song folder."
+		defaultSongRoot        = "."
+		SongRootUsage          = "Root of song folder path."
 	)
 
 	flag.IntVar(&PortNumber, "port", defaultPortNumber, portUsage)
 	flag.IntVar(&PortNumber, "p", defaultPortNumber, portUsage+" (shorthand)")
 	flag.BoolVar(&isFileServerEnabled, "fileserver", defaultFileServerState, fileServerUsage)
 	flag.BoolVar(&isFileServerEnabled, "f", defaultFileServerState, fileServerUsage+" (shorthand)")
-	flag.StringVar(&SongRoot, "root", defaultFileServerRoot, fileServerRootUsage)
-	flag.StringVar(&SongRoot, "r", defaultFileServerRoot, fileServerRootUsage+" (shorthand)")
+	flag.StringVar(&SongRoot, "root", defaultSongRoot, SongRootUsage)
+	flag.StringVar(&SongRoot, "r", defaultSongRoot, SongRootUsage+" (shorthand)")
 
 	flag.Parse()
 	fmt.Println("Now listening port: " + strconv.Itoa(PortNumber))
