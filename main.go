@@ -50,13 +50,13 @@ func Fire(res http.ResponseWriter, status int32, message string, result *ResultS
 	fmt.Fprintf(res, string(resBtye))
 }
 
-func GetPlaylist(response http.ResponseWriter, request *http.Request) {
+func GetFilelist(response http.ResponseWriter, request *http.Request) {
 	var folderSlice []string
 	var musicSlice []MusicFileStruct
 
 	SongFolder := request.PostFormValue("folder")
 
-	log.Println(request.Method + " GetPlaylist, Folder:" + SongFolder)
+	log.Println(request.Method + " GetFilelist, Folder:" + SongFolder)
 
 	files, _ := ioutil.ReadDir(SongRoot + "/" + SongFolder)
 	for _, f := range files {
@@ -122,8 +122,8 @@ func Controller(response http.ResponseWriter, request *http.Request) {
 	if request.Method == "POST" {
 		//request.ParseForm()
 		switch do := request.PostFormValue("do"); do {
-		case "getplaylist":
-			GetPlaylist(response, request)
+		case "getfilelist":
+			GetFilelist(response, request)
 		default:
 			log.Println(request.Method + " Missing or wrong `do` param.")
 			Fire(response, 400, "Illegal request!", nil)
